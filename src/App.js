@@ -1,9 +1,8 @@
-import "./App.css";
+import React, { useState, useMemo, useCallback, memo } from "react";
+import './App.css'
 import { useDispatch, useSelector } from "react-redux";
-import { FaRegEdit,FaCheck 
- } from "react-icons/fa";
+import { FaRegEdit, FaCheck } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
-import { useState } from "react";
 import {
   addTodo,
   deleteAllTodos,
@@ -12,81 +11,110 @@ import {
   updateTodo,
 } from "./Store/TodoSlice";
 
+const Task = memo(({ data, handleUpdateTodo, handleDeleteTodo, handleToggleComplete }) => {
+  console.log(`Rendering Task with id: ${data.id}`);
+  return (
+    <div className="task">
+      <div>{data.text}</div>
+      <div>
+        {data?.completed === true ? (
+          "done"
+        ) : (
+          <>
+            <FaRegEdit size={22} onClick={() => handleUpdateTodo(data)} />
+            <MdDelete size={22} onClick={() => handleDeleteTodo(data.id)} />
+            <FaCheck size={22} onClick={() => handleToggleComplete(data.id)} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+});
+
+const TodoForm = ({ newTodo, setNewTodo, handleAddTodo, checkupdate, handleCicktoupdate }) => (
+  <div className="form">
+    <input
+      type="text"
+      className="input"
+      value={newTodo}
+      onChange={(e) => setNewTodo(e.target.value)}
+    />
+    <button
+      onClick={checkupdate ? handleCicktoupdate : handleAddTodo}
+      type="submit"
+      className="add"
+      value="Add Task"
+    >
+      {checkupdate ? "Update" : "Add"}
+    </button>
+  </div>
+);
+
 const App = () => {
   const dispatch = useDispatch();
   const todos = useSelector((state) => state.todos);
   const [newTodo, setNewTodo] = useState("");
   const [checkupdate, setcheckupdate] = useState(false);
   const [idtoupdate, setidtoupdate] = useState("");
-  const handleAddTodo = () => {
+
+  const memoizedTodos = useMemo(() => todos, [todos]);
+
+  const handleAddTodo = useCallback(() => {
     if (newTodo.trim() !== "") {
       dispatch(addTodo(newTodo));
       setNewTodo("");
     }
-  };
+  }, [newTodo, dispatch]);
 
-  const handleUpdateTodo = (data) => {
+  const handleUpdateTodo = useCallback((data) => {
     setcheckupdate(true);
-    console.log(data, "edit");
     const { id, text } = data;
     setidtoupdate(id);
     setNewTodo(text);
-  };
-  const handleCicktoupdate = () => {
+  }, []);
+
+  const handleCicktoupdate = useCallback(() => {
     dispatch(updateTodo({ idtoupdate, text: newTodo }));
     setNewTodo("");
     setcheckupdate(false);
     setidtoupdate("");
-  };
-  const handleDeleteTodo = (id) => {
-    dispatch(deleteTodo(id));
-  };
+  }, [dispatch, idtoupdate, newTodo]);
 
-  const handleToggleComplete = (id) => {
+  const handleDeleteTodo = useCallback((id) => {
+    dispatch(deleteTodo(id));
+  }, [dispatch]);
+
+  const handleToggleComplete = useCallback((id) => {
     dispatch(toggleComplete({ id }));
-  };
+  }, [dispatch]);
+
   const handleDeleteAllTodos = () => {
     dispatch(deleteAllTodos());
   };
+
   return (
-    <div class="container">
-      <div class="form">
-        <input
-          type="text"
-          class="input"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-        />
-        <button
-          onClick={checkupdate ? handleCicktoupdate : handleAddTodo}
-          type="submit"
-          class="add"
-          value="Add Task"
-        >
-          {checkupdate ? "Update" : "Add"}
-        </button>
+    <div className="container">
+      <TodoForm
+        newTodo={newTodo}
+        setNewTodo={setNewTodo}
+        handleAddTodo={handleAddTodo}
+        checkupdate={checkupdate}
+        handleCicktoupdate={handleCicktoupdate}
+      />
+      <div className="tasks">
+        {memoizedTodos?.map((data, index) => (
+          <Task
+            key={data.id}
+            data={data}
+            handleUpdateTodo={handleUpdateTodo}
+            handleDeleteTodo={handleDeleteTodo}
+            handleToggleComplete={handleToggleComplete}
+          />
+        ))}
       </div>
-      <div class="tasks">
-        {todos?.map((data, index) => {
-          return (
-            <div className="task">
-              <div>{data.text}</div>
-              <div>
-                {data?.completed === true ? (
-                  "done"
-                ) : (
-                 <>
-                  <FaRegEdit size={22} onClick={() => handleUpdateTodo(data)} />
-                  <MdDelete size={22} onClick={()=>handleDeleteTodo(data.id)}  />
-                  <FaCheck size={22} onClick={()=>handleToggleComplete(data.id)} />
-                 </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="delete-all" onClick={handleDeleteAllTodos}>
+        Delete all
       </div>
-      <div class="delete-all" onClick={handleDeleteAllTodos}>Delete all</div>
     </div>
   );
 };
